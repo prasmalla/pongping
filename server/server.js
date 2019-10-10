@@ -103,14 +103,11 @@ app.get('/logout', (req, res) => {
   res.redirect('/');
 });
 
-/**
- * Authorized routes
- */
 // send text with twilio ngrok callback url - http://3e63778e.ngrok.io/ping
 app.get('/ping', (req, res) => {
   ping.messages
     .create({
-      body: 'pong',
+      body: 'pong time! ur up)',
       from: '+12134447561',
       to: req.user.phoneNumber
     })
@@ -139,6 +136,10 @@ app.post('/pong', (req, res, next) => {
     res.end(twiml.toString());
   });
 });
+
+/**
+ * Authorized routes
+ */
 
 app.get(
   '/dash',
@@ -171,7 +172,7 @@ app.post('/dash', (req, res) => {
 
 // create new game
 app.post('/nextup', gameController.createGame, (req, res, next) => {
-  // res.status(200).send({ data: 'set' });
+  res.status(200).send({ data: 'set' });
 });
 
 // end current game
@@ -179,9 +180,7 @@ app.post(
   '/end',
   gameController.endGame,
   gameController.createGame,
-  (req, res, next) => {
-    
-  }
+  (req, res, next) => {}
 );
 
 /**

@@ -25,13 +25,19 @@
       <button onclick="setPhoneNumber()">UPDATE PHONE</button>
     </div>
     <% if (game) { %>
+    <div id="invalid">
+      <p>
+        Your score needs to be between 0 - 20.<br />Did you win? Nice! ask your
+        opponent to enter their score)
+      </p>
+    </div>
     <div class="nextUp">
       <input
         id="score"
         type="text"
         name="<%=game._id%>"
         placeholder="your score"
-        maxlength="5"
+        maxlength="2"
       />
       <button onclick="endGame()">UPDATE RESULT</button>
     </div>

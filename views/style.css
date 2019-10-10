@@ -93,3 +93,12 @@ button:hover {
   background-color: #555555; /* Green */
   color: white;
 }
+#invalid {
+  position: absolute;
+  bottom: 0;
+  right: 90px;
+  display: none;
+}
+#invalid.visible {
+  display: block;
+}

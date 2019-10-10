@@ -43,10 +43,10 @@ gameController.findCurrentGame = (req, res, next) => {
         (game && game.player2 && game.player2._id == req.user._id)
       ) {
         res.locals.game = game;
-        next();
+        return next();
       } else {
         console.log('not playing yet');
-        next();
+        return next();
       }
     });
 };
@@ -132,7 +132,6 @@ gameController.createGame = (req, res, next) => {
             game.result = `${game.winner} [vs] ${req.user.displayName}`;
             game.winner = 'game on';
             //send next
-            console.log('send text');
             ping.messages
               .create({
                 body: 'pong',
@@ -140,7 +139,7 @@ gameController.createGame = (req, res, next) => {
                 to: game.player1.phoneNumber
               })
               .then(message => {
-                console.log(message.sid);
+                console.log('text sent', message.sid);
               });
             game.save();
           } else {
