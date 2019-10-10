@@ -30,7 +30,7 @@
         id="score"
         type="text"
         name="<%=game._id%>"
-        placeholder="you-opponent"
+        placeholder="your score"
         maxlength="5"
       />
       <button onclick="endGame()">UPDATE RESULT</button>
@@ -39,7 +39,9 @@
     <button class="nextUp" onclick="nextUp()">I GOT NEXT!</button>
     <% } %>
     <div class="stats">
+      <% if(stats.lastPlayed) { %>
       <h4>LAST PLAYED ON - <%= new Date(stats.lastPlayed).toDateString() %></h4>
+      <% } %>
       <h2>STATS</h2>
       <h3>WON - <%= stats.won %></h3>
       <h3>LOST - <%= stats.lost %></h3>

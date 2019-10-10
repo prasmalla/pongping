@@ -53,7 +53,7 @@ passport.use(
     {
       clientID: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      callbackURL: 'http://localhost:3000/oauth/github/callback'
+      callbackURL: `${process.env.NGROK_URL}/oauth/github/callback`
     },
     function(accessToken, refreshToken, profile, cb) {
       User.findOne({ username: profile.username }, function(err, user) {
@@ -171,13 +171,18 @@ app.post('/dash', (req, res) => {
 
 // create new game
 app.post('/nextup', gameController.createGame, (req, res, next) => {
-  res.status(200).send({ data: 'set' });
+  // res.status(200).send({ data: 'set' });
 });
 
 // end current game
-app.post('/end', (req, res) => {
-  gameController.endGame(req, res);
-});
+app.post(
+  '/end',
+  gameController.endGame,
+  gameController.createGame,
+  (req, res, next) => {
+    
+  }
+);
 
 /**
  * 404 handler
