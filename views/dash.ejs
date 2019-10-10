@@ -1,0 +1,48 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>pongping - who's got neXT</title>
+    <link href="style.css" rel="stylesheet" type="text/css" />
+    <script type="text/javascript" src="main.js"></script>
+  </head>
+  <body>
+    <a href="/"><img src="logo.png" alt="pongping"/></a><br />
+    <div class="account">
+      <img class="gravatar" src="<%= user.gravatar %>" />
+      <p>
+        Logged in as <%= user.displayName %><br />Not you?
+        <a href="/logout">LOGOUT</a>
+      </p>
+    </div>
+    <div class="phone">
+      <input
+        id="phoneNumber"
+        type="text"
+        placeholder="ENTER PHONE NUMBER"
+        maxlength="10"
+        value="<%= user.phoneNumber? user.phoneNumber : '' %>"
+      />
+      <button onclick="setPhoneNumber()">UPDATE PHONE</button>
+    </div>
+    <% if (game) { %>
+    <div class="nextUp">
+      <input
+        id="score"
+        type="text"
+        name="<%=game._id%>"
+        placeholder="you-opponent"
+        maxlength="5"
+      />
+      <button onclick="endGame()">UPDATE RESULT</button>
+    </div>
+    <% } else { %>
+    <button class="nextUp" onclick="nextUp()">I GOT NEXT!</button>
+    <% } %>
+    <div class="stats">
+      <h4>LAST PLAYED ON - <%= new Date(stats.lastPlayed).toDateString() %></h4>
+      <h2>STATS</h2>
+      <h3>WON - <%= stats.won %></h3>
+      <h3>LOST - <%= stats.lost %></h3>
+    </div>
+  </body>
+</html>

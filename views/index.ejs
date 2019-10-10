@@ -1,0 +1,38 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>pongping - who's got neXT</title>
+    <link href="style.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <a href="/"><img src="logo.png" alt="pongping"/></a>
+    <div class="next">
+      <h3 class="wo">WHO'S GOT NEXT</h3>
+      <ul>
+        <% games.forEach(game => { %>
+        <li>
+          <%- game.result %> <% if(game.player2) { %>
+          <strong><%- game.winner %></strong>
+          <% } %>
+        </li>
+        <% }) %> <% if(!games.length) { %>
+        <li>no registered plays..</li>
+        <% } %>
+      </ul>
+    </div>
+    <div class="results">
+      <a href="/dash">
+        <h3>RESULTS</h3>
+        <ul>
+          <% playedGames.forEach(game => { %>
+          <li>
+            <%- game.result %>
+            <span><%- game.winner %></span>
+          </li>
+          <% }) %>
+        </ul>
+      </a>
+    </div>
+    <a class="login" href="/oauth/github">LOGIN WITH GITHUB</a>
+  </body>
+</html>
