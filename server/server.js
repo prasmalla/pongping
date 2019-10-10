@@ -1,125 +1,100 @@
 const express = require('express');
+const path = require('path');
 const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
-require('dotenv').config();
-// Express and Passport Session
+const mongoURI = 'mongodb://localhost/pongping';
 const passport = require('passport');
-const OAuth2Strategy = require('passport-oauth2').Strategy;
+const GitHubStrategy = require('passport-github').Strategy;
 const session = require('express-session');
 
-const userController = require('./controllers/userController');
+const User = require('./models/User');
+const gameController = require('./controllers/game');
+
+mongoose.connect(mongoURI);
+require('dotenv').config();
 
 const PORT = 3000;
-
 const app = express();
-app.use(session({ secret: 'on8er6t[q0wy0t]yqa]0yea0' }));
+
+app.use(session({ secret: process.env.SESSION_SECRET }));
 app.use(passport.initialize());
 app.use(passport.session());
 
-const mongoURI = 'mongodb://localhost/pongping';
-mongoose.connect(mongoURI);
-
-/**
- * Set our Express view engine as ejs.
- * This means whenever we call res.render, ejs will be used to compile the template.
- * ejs templates are located in the client/ directory
- */
 app.set('view engine', 'ejs');
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 
-/**
- * Automatically parse urlencoded body content from incoming requests and place it
- * in req.body
- */
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cookieParser());
+// twilio number +12134447561
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const ping = require('twilio')(accountSid, authToken);
+const MessagingResponse = require('twilio').twiml.MessagingResponse;
 
-/**
- * --- Express Routes ---
- * Express will attempt to match these routes in the order they are declared here.
- * If a route handler / middleware handles a request and sends a response without
- * calling `next()`, then none of the route handlers after that route will run!
- * This can be very useful for adding authorization to certain routes...
- */
+// serve static files in views folder
+app.use(express.static(path.join(__dirname, './../views')));
 
-/**
- * root
- */
-app.get('/', (req, res) => {
-  /**
-   * Since we set `ejs` to be the view engine above, `res.render` will parse the
-   * template page we pass it (in this case 'client/secret.ejs') as ejs and produce
-   * a string of proper HTML which will be sent to the client!
-   */
-  res.render('./../client/index');
-});
-
-/**
- * signup
- */
-app.get('/signup', (req, res) => {
-  res.render('./../client/signup', { error: null });
-});
-
-app.post('/signup', userController.createUser, (req, res) => {
-  // what should happen here on successful sign up?
-  console.log('post request successful - signup redirect');
-  res.redirect('/next');
-});
-
-/**
- * login
- */
-app.post('/login', userController.verifyUser, (req, res, next) => {
-  // what should happen here on successful log in?
-  console.log('post request successful - login');
-  res.redirect('/next');
-});
+app.get(
+  '/',
+  gameController.getAllGames,
+  gameController.playedGames,
+  (req, res) => {
+    res.render('index', {
+      games: res.locals.games,
+      playedGames: res.locals.playedGames
+    });
+  }
+);
 
 /**
  * passport oauth
  */
-
 passport.use(
-  new OAuth2Strategy(
+  new GitHubStrategy(
     {
-      authorizationURL: 'https://github.com/login/oauth/authorize',
-      tokenURL: 'https://github.com/login/oauth/access_token',
       clientID: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
       callbackURL: 'http://localhost:3000/oauth/github/callback'
     },
     function(accessToken, refreshToken, profile, cb) {
-      // User.findOrCreate({ exampleId: profile.id }, function(err, user) {
-      //   return cb(err, user);
-      // });
-      return cb(null, profile);
+      User.findOne({ username: profile.username }, function(err, user) {
+        if (err) return cb(err);
+
+        // no user found... create new user
+        if (!user) {
+          const user = new User({
+            username: profile.username,
+            displayName: profile.displayName,
+            gravatar: profile.photos[0].value,
+            phoneNumber: null
+          });
+          user.save(function(err) {
+            if (err) console.log(err);
+            return cb(err, user);
+          });
+        } else {
+          // return exiting user
+          return cb(err, user);
+        }
+      });
     }
   )
 );
 
 passport.serializeUser(function(user, done) {
-  // placeholder for custom user serialization
-  // null is for errors
   done(null, user);
 });
 
-passport.deserializeUser(function(user, done) {
-  // placeholder for custom user deserialization.
-  // maybe you are going to get the user from mongo by id?
-  // null is for errors
+passport.deserializeUser(async (user, done) => {
   done(null, user);
 });
 
-// we will call this to start the GitHub Login process
-app.get('/oauth/github', passport.authenticate('oauth2'));
+app.get('/oauth/github', passport.authenticate('github'));
 
-// GitHub will call this URL
 app.get(
   '/oauth/github/callback',
-  passport.authenticate('oauth2', { failureRedirect: '/' }),
+  passport.authenticate('github', { failureRedirect: '/' }),
   function(req, res) {
-    res.redirect('/next');
+    res.redirect('/dash');
   }
 );
 
@@ -131,15 +106,77 @@ app.get('/logout', (req, res) => {
 /**
  * Authorized routes
  */
-app.get('/next', (req, res) => {
-  /**
-   * The previous middleware has populated `res.locals` with users
-   * which we will pass this in to the res.render so it can generate
-   * the proper html from the `secret.ejs` template
-   */
-  if (req.isAuthenticated())
-    res.render('./../client/next', { users: res.locals.users });
-  else res.redirect('/');
+// send text with twilio ngrok callback url - http://3e63778e.ngrok.io/ping
+app.get('/ping', (req, res) => {
+  ping.messages
+    .create({
+      body: 'pong',
+      from: '+12134447561',
+      to: req.user.phoneNumber
+    })
+    .then(message => {
+      console.log(message.sid);
+      res.status(200).send({ done: 'sent' });
+    });
+});
+
+app.post('/pong', (req, res, next) => {
+  const phoneNumber = req.body.From.substr(2);
+  const twiml = new MessagingResponse();
+
+  User.findOne({ phoneNumber: phoneNumber }, function(err, user) {
+    if (err) return cb(err);
+    if (!user) {
+      twiml.message(
+        'phone not registered( login with github to add your number'
+      );
+    } else {
+      req.user = user;
+      gameController.createGame(req, res, next);
+      twiml.message('sweet! will ping you when you go next)');
+    }
+    res.writeHead(200, { 'Content-Type': 'text/xml' });
+    res.end(twiml.toString());
+  });
+});
+
+app.get(
+  '/dash',
+  gameController.findCurrentGame,
+  gameController.getStats,
+  (req, res) => {
+    if (req.isAuthenticated())
+      res.render('dash', {
+        user: req.user,
+        game: res.locals.game,
+        stats: res.locals.stats
+      });
+    else res.redirect('/');
+  }
+);
+
+app.post('/dash', (req, res) => {
+  User.findOne({ username: req.user.username }, function(err, user) {
+    if (err) console.log(err);
+
+    if (user) {
+      user.phoneNumber = req.body.phoneNumber;
+      user.save(function(err) {
+        if (err) console.log(err);
+        res.status(200).send({ user: user });
+      });
+    }
+  });
+});
+
+// create new game
+app.post('/nextup', gameController.createGame, (req, res, next) => {
+  res.status(200).send({ data: 'set' });
+});
+
+// end current game
+app.post('/end', (req, res) => {
+  gameController.endGame(req, res);
 });
 
 /**
